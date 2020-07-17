@@ -3,7 +3,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const ejs = require("ejs");
-const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 const bodyParser = require("body-parser");
 // const passport = require("passport");
 const bcrypt = require("bcrypt");
@@ -26,9 +26,7 @@ username: String,
 password: String
 }); 
 
-//use the mongoose-encryption
-const secret = "1234567";
-customerSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"]});
+
 
 //create collection for db
 const User = new mongoose.model("User", customerSchema);
@@ -50,7 +48,7 @@ app.post("/register", function(req, res){
     
     const user = new User({
     username: username,
-    password: password
+    password: md5(password)
     });
     
     user.save(function(err){
