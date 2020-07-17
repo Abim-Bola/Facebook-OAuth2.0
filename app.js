@@ -1,7 +1,9 @@
 //jshint esversion:6
+//require all depencies
 const express = require("express");
 const mongoose = require("mongoose");
 const ejs = require("ejs");
+const encrypt = require("mongoose-encryption");
 const bodyParser = require("body-parser");
 // const passport = require("passport");
 const bcrypt = require("bcrypt");
@@ -14,16 +16,22 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(express.static("public"));
 
+//connect to db
 mongoose.connect("mongodb://localhost:27017/customerdb", { useUnifiedTopology: true, useNewUrlParser: true }
 );
 
-const customerSchema = ({
+//create schema
+const customerSchema = new mongoose.Schema ({
 username: String,
 password: String
 }); 
 
-const User = mongoose.model("User", customerSchema);
+//use the mongoose-encryption
+const secret = "1234567";
+customerSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"]});
 
+//create collection for db
+const User = new mongoose.model("User", customerSchema);
 
 
 app.get("/", function(req, res){
