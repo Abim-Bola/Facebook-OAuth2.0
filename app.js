@@ -1,15 +1,17 @@
 //jshint esversion:6
 //require all depencies
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const ejs = require("ejs");
 const md5 = require("md5");
 const bodyParser = require("body-parser");
 const passport = require("passport");
+const findOrCreate = require('mongoose-findorcreate');
+const FacebookStrategy = require("passport-facebook").Strategy;
 const session = require("express-session");
 const passportLocal = require("passport-local");
 const passportLocalMongoose= require("passport-local-mongoose");
-// const = require("");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 
@@ -42,6 +44,7 @@ password: String
 }); 
 
 customerSchema.plugin(passportLocalMongoose);
+customerSchema.plugin(findOrCreate);
 
 
 
@@ -51,14 +54,49 @@ const User = new mongoose.model("User", customerSchema);
 
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser(function(user, done) {
+    done(null, user.id);
+  });
+  
+  passport.deserializeUser(function(id, done) {
+    User.findById(id, function(err, user) {
+      done(err, user);
+    });
+  });
+
+  //implement facebook strategy
+
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:4000/auth/facebook/secrets",
+    profileFields: ['id', 'displayName', 'photos', 'email']
+
+  },
+  function(accessToken, refreshToken, profile, cb) {
+      console.log(profile);
+    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
 
 
 
 app.get("/", function(req, res){
     res.render("home");
     });
+
+app.get('/auth/facebook',
+  passport.authenticate('facebook', { scope: ["profile"]})
+);
+
+app.get("/auth/facebook/secrets",
+  passport.authenticate('facebook', { failureRedirect: "/login" }),
+  function(req, res) {
+    // Successful authentication, redirect to secrets.
+    res.redirect("/secrets");
+  });
 
 app.get("/register", function(req, res){
 res.render("register");
@@ -71,6 +109,8 @@ app.get("/secrets", function(req, res){
         res.redirect("/register");
     }
     });
+
+    
 
 
 
