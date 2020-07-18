@@ -42,22 +42,23 @@ res.render("register");
 
 
 
-app.post("/register", function(req, res){
-    const username = req.body.username;
-    const password = req.body.password;
-    
-    const user = new User({
-    username: username,
-    password: md5(password)
-    });
-    
-    user.save(function(err){
+app.post("/register", function(req, res) {
+
+bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+const user = new User ({
+username: req.body.username,
+password:hash
+});
+
+user.save(function(err){
     if(err){
         console.log(err);
     }else{
         res.render("secrets");
     }
 });
+});
+
 });
 
 app.post("/login", function(req, res){
@@ -69,9 +70,11 @@ app.post("/login", function(req, res){
             console.log("wrong password");
         }else{
             if(foundUser){
-                if(foundUser.password === password){
-                    res.render("secrets");
-                }
+                bcrypt.compare(password, foundUser.password, function(err, result) {
+                    if(result === true){
+                        res.render("secrets");
+                    }
+                });
             }
         }
     });
